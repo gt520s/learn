@@ -1,0 +1,37 @@
+设置git名字和邮箱		git config --global user.name(email) "你的名字(你的邮箱)"
+创建密钥与公钥			ssh-keygen -t rsa -C "youremail@example.com"
+
+创建本地仓库			git init
+把文件添加到本地仓库	git add <文件名>
+把文件提交到本地仓库	git commit -m "注释说明内容"
+查看工作区状态      	git status
+查看修改的内容			git diff
+
+版本退回
+退回之前版本			git reset --hard <需要退回的版本号>
+查看提交历史			git log
+查看历史记录			git reflog
+
+撤销工作区的修改		git checkout --<文件名>
+撤销暂存区的修改		git reset HEAD <文件名>
+删除文件				git rm <文件名>
+
+
+关联远程仓库			git remote add origin <仓库地址>
+克隆远程仓库            git clone <仓库地址>
+第一次推送				git push -u origin master
+将被本地推送到远程		git push origin <分支名>
+
+
+查看分支                git branch
+创建分支				git branch <name>
+创建+切换分支			git branch -b <name>
+切换分支				git checkout <name>
+删除分支				git branch -d <name>
+合并到当前分支			git merge <name>
+普通合并到分支			git merge --no-ff -m "注释" <name>
+
+隐藏工作区				git stash
+恢复工作区				git stash pop
+
+
