@@ -1,11 +1,312 @@
+
+@{
+    Layout = null;
+}
+
 <!DOCTYPE html>
-<html lang="en">
+
+<html>
 <head>
-	<meta charset="UTF-8">
-	<title>项目主页</title>
+    <meta name="viewport" content="width=device-width" />
+    <title>款式销售曲线分析</title>
+    <script type="text/javascript" src="~/Scripts/jquery-1.8.0.js"></script>
+    <script src="~/Js/SJP.js?v=@ViewData["SJP"]"></script>
+	<link rel="stylesheet" href="~/css/bootstrap.min.css">
+		<link rel="stylesheet" href="~/css/backcommon.css?c=@ViewData["backcommon"]">
+	<script src="~/My97DatePicker/WdatePicker.js"></script>
+    <script src="~/Js/echarts.common.min.js"></script>
 </head>
 <body>
-	<h2>Hello World!</h2>
-	<p>测试完成!</p>
+<div class="art_list">
+    <div class="art_list_main">
+        <p class="bread">订单系统 > 产品列表 > <span>款式销售曲线分析</span></p>
+
+        <div class="back_functionArea" id="curve_box" >
+            <h3 class="back_title">款式销售曲线分析</h3>
+            <div class="function_area fr curve_search">
+                <span class="back_makeTime_span">款式：</span>
+                <input type="text" placeholder="Js-838233" class="search_text" style="float:none;border: 1px solid #ccc;">
+                <span  class="back_makeTime_span">参照统计：</span>
+                <select name="" id="" class="curve_sele">
+                    <option value="`1">数量</option>
+                    <option value="`2">重量</option>
+                </select>
+                <button class="btn btn-warning ">打印</button>
+                <button class="btn btn-warning curve_btn_search">查询</button>
+            </div>
+
+
+
+        </div>
+        <!--功能区完-->
+        <div class="back_table">
+            <div id="curve_tab">
+                <ul class="curve_tab_list">
+                    <li class="curve_tab_d">日</li>
+                    <li class="curve_tab_m curve_list_active">月</li>
+                    <li class="curve_tab_y">年</li>
+                </ul>
+            </div>
+            <!-- ECharts BOX -->
+            <div class="curve_main" id="curve_main_y" style="width:100%;height:600px;"></div>
+            <div class="curve_main" id="curve_main_m" style="width:100%;height:600px;"></div>
+            <div class="curve_main" id="curve_main_d" style="width:100%;height:600px;"></div>
+        </div>
+
+
+    </div>
+</div>
+
+<script>
+	// 图表的基础配置项和数据
+	var option = {
+		xAxis: {
+			type: 'category',
+		},
+		yAxis: {
+			type: 'value'
+		},
+
+		tooltip: {
+			trigger: 'axis',
+			axisPointer: {
+				type: 'cross'
+			}
+		},
+		dataZoom: [
+			{
+				show: true,
+				start: 0,
+				end: 100
+			},
+			{
+				type: 'inside',
+				start: 0,
+				end: 100
+			},
+			{
+				show: false,
+				yAxisIndex: 0,
+				filterMode: 'empty',
+				width: 30,
+				height: '50%',
+				showDataShadow: false,
+				left: '93%'
+			}
+		],
+		series: [
+			{
+				type: 'line',
+				smooth: true,
+				name:'款式(数量)'
+			},
+			{
+				type: 'line',
+				smooth: true,
+				name:'上架产品重量平均值(数量)'
+			},
+			{
+				type: 'line',
+				smooth: true,
+				name:'同品名上架产品平均值(数量)'
+			}
+		]
+	};
+	//克隆对象
+	var option_y = cloneObj( option );
+	var option_m = cloneObj( option );
+	var option_d = cloneObj( option );
+
+    $(function () {
+		var msg = "@ViewBag.Datas";
+		var orderDatas = msg.replace(/&quot;/gi, '"');
+		var jsonData = JSON.parse(orderDatas);//反序列化
+		console.log(jsonData);
+		$('.search_text').attr('placeholder',jsonData.StyleSn)
+	// 初始化echarts实例
+	var myChart_m = echarts.init(document.getElementById('curve_main_m'));
+		option_m.xAxis.data = jsonData.XValue
+		option_m.series[0].data = jsonData.YValue
+		option_m.series[1].data = jsonData.AllAVG
+		option_m.series[2].data = jsonData.CategoryAVG
+		myChart_m.setOption(option_m);
+		window.onresize = function(){
+			myChart_m.resize();
+		};
+
+		switch_curve();
+	});
+    //页面完成后加载结束
+
+    function search_act() {
+        $('.curve_btn_search').on('click',function(){
+//            $('.')
+        })
+	}
+    
+    
+    
+    /*
+    * 对象克隆
+    * obj:克隆的目标对象
+    * */
+	function cloneObj(obj){
+		var str, newobj = obj.constructor === Array ? [] : {};
+		if(typeof obj !== 'object'){
+			return;
+		} else if(window.JSON){
+			str = JSON.stringify(obj), //序列化对象
+				newobj = JSON.parse(str); //还原
+		} else {
+			for(var i in obj){
+				newobj[i] = typeof obj[i] === 'object' ? cloneObj(obj[i]) : obj[i];
+			}
+		}
+		return newobj;
+	};
+
+	/*点击切换图表*/
+	function switch_curve() {
+        $('.curve_tab_list li').on('click',function () {
+            var className = $(this).attr('class'),
+                search_unit = '',
+				teferToWgt = '',
+				display = '';
+            if( !$(this).hasClass('curve_list_active')){
+				$(this).addClass('curve_list_active').siblings().removeClass('curve_list_active');
+				$('.curve_main').hide().text('');
+				search_unit = className[className.length-1];
+				$('#curve_main_'+search_unit).show();
+				//实例化图表
+                if( search_unit == 'y' ){
+                	display = '1';
+                }else if( search_unit == 'm' ){
+                	display = '2'
+                }else if( search_unit = 'd' ){
+                	display = '3';
+                }else {
+                	alert('数据出错!')
+                }
+				teferToWgt = $('.curve_sele').val();
+
+				var styleSn = $('.search_text').val() != '' ?  $('.search_text').val() : $('.search_text').attr('placeholder');
+				$.ajax({
+					url: "../Product/ProductSalesCurveAnalysisAsyn",
+					data: { styleSn:styleSn, teferToWgt:teferToWgt, display:display },
+					dataType: "text",
+					type: "post",
+					//async: false,//取消异步请求
+					success: function (data) {
+						var orderDatas = data.replace(/&quot;/gi, '"');
+						var jsonData = JSON.parse(orderDatas);//反序列化
+						console.log(jsonData);
+						function fn(dateType) {
+							dateType.xAxis.data = jsonData.XValue
+							dateType.series[0].data = jsonData.YValue
+							dateType.series[1].data = jsonData.AllAVG
+							dateType.series[2].data = jsonData.CategoryAVG
+						}
+						//处理为月的数据
+						if( display == '1' ){
+							fn(option_y);
+							var myChart_y = echarts.init(document.getElementById('curve_main_y'));
+							myChart_y.setOption(option_y);
+                        }else if( display == '3' ){
+                            fn( option_d );
+							var myChart_d = echarts.init(document.getElementById('curve_main_d'));
+							myChart_d.setOption(option_d);
+
+
+						}
+
+
+
+
+
+					},
+					error: function (data) {
+						alerts("温馨提示：", "获取数据失败！", "#alerts");
+					}
+				});
+			}
+		})
+	}
+
+	/*
+	* 获取数据
+	*   fn:回掉函数
+	* */
+	function ajax(fn) {
+		
+
+	}
+
+
+
+
+
+
+//		var option = {
+//		xAxis: {
+//			type: 'category',
+//			data: ['2017年','2017年02月', '2017年03月', '2017年04月', '2017年05月',
+//				'2017年06月', '2017年07月', '2017年08月','2017年09月','2017年','2017年02月', '2017年03月', '2017年04月', '2017年05月','2017年06月', '2017年07月', '2017年08月','2017年09月']
+//		},
+//		yAxis: {
+//			type: 'value'
+//		},
+//
+//		tooltip: {
+//			trigger: 'axis',
+//			axisPointer: {
+//				type: 'cross'
+//			}
+//		},
+//		dataZoom: [
+//			{
+//				show: true,
+//				start: 0,
+//				end: 100
+//			},
+//			{
+//				type: 'inside',
+//				start: 0,
+//				end: 100
+//			},
+//			{
+//				show: true,
+//				yAxisIndex: 0,
+//				filterMode: 'empty',
+//				width: 30,
+//				height: '50%',
+//				showDataShadow: false,
+//				left: '93%'
+//			}
+//		],
+//		series: [
+//			{
+//				data: [820, 932, 901, 934, 1290, 1330, 1320,773,2500,860, 232, 601, 834, 290, 530, 620,213,1500],
+//				type: 'line',
+//				smooth: true,
+//				name:'年'
+//			}
+//		]
+//	};
+//	// 异步加载数据
+//	$.get('data.json').done(function (data) {
+//		// 填入数据
+//		myChart.setOption({
+//			xAxis: {
+//				data: data.categories
+//			},
+//			series: [{
+//				// 根据名字对应到相应的系列
+//				name: '2018年',
+//				data: data.data
+//			}]
+//		});
+//	});
+</script>
+
 </body>
 </html>
