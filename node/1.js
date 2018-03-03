@@ -15,7 +15,15 @@ fs.writeFile('../html/1.txt',str,function (err) {
     if(err){
         throw err;
     }else {
-        console.log('写入成功!')
+        console.log('写入成功!');
     }
 
+});
+
+fs.unlink('../html/1.txt',function (err) {
+    if(err){
+        throw err
+    }else {
+        console.log('文件删除成功!');
+    }
 })
