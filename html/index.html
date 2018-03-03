@@ -1,11 +1,231 @@
+
+@{
+    Layout = null;
+}
+
 <!DOCTYPE html>
-<html lang="en">
+
+<html>
 <head>
-	<meta charset="UTF-8">
-	<title>项目主页</title>
+    <meta name="viewport" content="width=device-width" />
+    <title>款式销售曲线分析</title>
+    <script type="text/javascript" src="~/Scripts/jquery-1.8.0.js"></script>
+    <script src="~/Js/SJP.js?v=@ViewData["SJP"]"></script>
+	<link rel="stylesheet" href="~/css/bootstrap.min.css">
+		<link rel="stylesheet" href="~/css/backcommon.css?c=@ViewData["backcommon"]">
+	<script src="~/My97DatePicker/WdatePicker.js"></script>
+    <script src="~/Js/echarts.common.min.js"></script>
 </head>
 <body>
-	<h2>Hello World!</h2>
-	<p>测试完成!</p>
+<div class="art_list">
+    <div class="art_list_main">
+        <p class="bread">订单系统 > 产品列表 > <span>款式销售曲线分析</span></p>
+        <div class="back_functionArea" id="curve_box" >
+            <h3 class="back_title">款式销售曲线分析</h3>
+            <div class="function_area fr curve_search">
+                <span class="back_makeTime_span">款式：</span>
+                <input type="text" class="search_text" style="float:none;border: 1px solid #ccc;">
+                <span  class="back_makeTime_span">参照统计：</span>
+                <select name="" id="" class="curve_sele">
+                    <option value="1">数量</option>
+                    <option value="`2">重量</option>
+                </select>
+                <button class="btn btn-warning curve_btn_search">查询</button>
+            </div>
+        </div>
+        <!--功能区完-->
+        <div class="back_table">
+            <div id="curve_tab">
+                <ul class="curve_tab_list">
+                    <li data="3" class="curve_tab_d">日</li>
+                    <li data="2" class="curve_tab_m curve_list_active">月</li>
+                    <li data="1" class="curve_tab_y">年</li>
+                </ul>
+            </div>
+            <!-- ECharts BOX -->
+            <div class="curve_main" id="curve_main_m" style="width:100%;height:600px;"></div>
+            <!--总计说明-->
+            <div class="curve_total"></div>
+            <!--注释说明文字-->
+            <div class="explanatory">
+                <p>* 款式曲线与“平均值”曲线的对照有助于管理者直观了解款式的销售竞争力变化，以便于在适当时机做出下架操作。</p>
+                <p>* "所有上架产品平均值"曲线是对当前所有为上架状态款式的统计，款式从创建日期开始就将对该曲线产生影响。</p>
+                <p>* "同品名上架产品平均值"曲线是对与该款式品名相同且当前为上架状态款式的统计，款式从创建日期开始就将对该曲线产生影响。</p>
+                <p>* 涉及平均值计算的公式为：某日期总销量/款式数。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(function () {
+		var msg = "@ViewBag.Datas";
+		var orderDatas = msg.replace(/&quot;/gi, '"');
+		var jsonData = JSON.parse(orderDatas);//反序列化
+		$('.search_text').val(jsonData.StyleSn)
+		create_curve( jsonData )
+		switch_curve();
+		search_act();
+	});  //页面完成后加载结束
+    
+    /*
+    * 搜索功能按钮
+    * */
+    function search_act() {
+        $('.curve_btn_search').on('click',function(){
+        	var data = $('.curve_list_active').attr('data');
+			var styleSn = $('.search_text').val();
+			if( styleSn == '' ){
+				alert('请输入要查询的款号！',function () {
+					$('.search_text').focus();
+				});
+				return false;
+			};
+			_ajax('../Product/ProductSalesCurveAnalysisAsyn',data)
+        });
+	};
+
+	/*
+	* 封装_ajax方法，每次切换时发起get请求，获取相应的json文件，请求成功后渲染echarts
+	* url      : ajax请求的地址
+	* display : 请求的参数(控制年月日)
+	* */
+	function _ajax( url,display ) {
+		var teferToWgt = $('.curve_sele').val();
+		var styleSn = $('.search_text').val();
+		$.ajax({
+			type: 'get',
+			url: url,
+			data: { styleSn:styleSn, teferToWgt:teferToWgt, display:display},
+			success: function(data) {
+				var orderDatas = data.replace(/&quot;/gi, '"');
+				var jsonData = JSON.parse(orderDatas);//反序列化
+				if( jsonData.IsStyleSn == '0' ){
+					alert('款号输入错误 !',function () {
+						$('.search_text').select();
+					})
+				}else if( jsonData.IsStyleSn == '1' && jsonData.XValue.length == 0 ){
+					alert('暂无数据 !',function () {
+						$('.search_text').select();
+					})
+				}
+				create_curve(jsonData)
+				console.log(jsonData)
+			}
+		});
+	};
+
+    /*
+    * 生成图表曲线
+    * jsonData:数据
+    */
+	function create_curve(jsonData) {
+		var select_val = $('.curve_sele').val() == '1' ? '数量' : '重量';
+		var option = {
+			//设置图表与容器的间隔
+			grid:{
+				x:50,
+				y:40,
+				x2:40,
+				y2:70,
+				borderWidth:1
+			},
+			xAxis: {
+				type: 'category',
+				data : jsonData.XValue
+			},
+			yAxis: {
+				type: 'value'
+			},
+			tooltip: {
+				trigger: 'axis',
+				axisPointer: {
+					type: 'cross'
+				}
+			},
+			dataZoom: [
+				{
+					show: true,
+					start: 0,
+					end: 100,
+					dataBackgroundColor: '#eee',            // 数据背景颜色
+					fillerColor: 'rgba(240,240,240,0.6)',   // 填充颜色
+					handleColor: 'rgba(178,216,247,0.5)'     // 手柄颜色
+				},
+				{
+					type: 'inside',
+					start: 0,
+					end: 100
+				},
+			],
+			series: [
+				{
+					type: 'line',
+					smooth: true,
+					name:'款式('+ select_val +')',
+					data:jsonData.YValue,
+				},
+				{
+					type: 'line',
+					smooth: true,
+					name:'上架产品重量平均值('+ select_val +')',
+					data:jsonData.AllAVG,
+					itemStyle: {
+						normal: {
+							color: '#6373ea'
+						}
+					}
+				},
+				{
+					type: 'line',
+					smooth: true,
+					name:'同品名上架产品平均值('+ select_val +')',
+					data:jsonData.CategoryAVG,
+					itemStyle: {
+						normal: {
+							color: '#ddad58'
+						}
+					}
+				}
+			],
+			legend: {
+				data:['款式('+ select_val +')','上架产品重量平均值('+ select_val +')','同品名上架产品平均值('+ select_val +')'],
+				x: '28'
+			},
+//			toolbox: {
+//				show: true,
+//				feature: {
+//					dataZoom: {
+//						yAxisIndex: 'none'
+//					},
+//					dataView: {readOnly: false},
+//					magicType: {type: ['line', 'bar']},
+//					restore: {},
+//					saveAsImage: {}
+//				}
+//			},
+		};
+		var myChart = echarts.init(document.getElementById('curve_main_m'));
+		myChart.setOption(option);
+		$(window).resize(function () {
+			myChart.resize();
+		})
+        /*注入数据*/
+        $('.curve_total').text(jsonData.SumInfo);
+	}
+
+
+	/*点击切换图表*/
+	function switch_curve() {
+        $('.curve_tab_list li').on('click',function () {
+            var data = $(this).attr('data');
+            if( !$(this).hasClass('curve_list_active')){
+				$(this).addClass('curve_list_active').siblings().removeClass('curve_list_active');
+				_ajax('../Product/ProductSalesCurveAnalysisAsyn',data)
+			}
+		})
+	}
+</script>
+
 </body>
 </html>
