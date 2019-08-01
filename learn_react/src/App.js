@@ -14,7 +14,7 @@ class App extends Component{
     let {age,name} = this.state
     return (
       <div>
-        这是app组件
+        这是app组件.
         <hr/>
         <Header name={name} age={age}>
           <ul>
