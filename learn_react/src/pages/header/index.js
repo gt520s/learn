@@ -3,7 +3,7 @@
  * @Date: 2019/7/29 21:22
  */
 import React, {Component} from 'react'
-
+import styled from '../../style/test.module.styl'
 class Header extends Component{
   constructor(props){
     super(props)
@@ -14,7 +14,7 @@ class Header extends Component{
   render(){
     let {name,age} = this.props
     return (
-      <div>
+      <div className={styled.main}>
         <p>
           <strong>姓名:</strong>
           <span>{name}</span>
